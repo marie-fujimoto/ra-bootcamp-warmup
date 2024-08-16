@@ -1,4 +1,3 @@
-# ra-bootcamp-warmup
 
 #a. semesterdata
 
@@ -13,6 +12,15 @@ sumdata <- sumdata[-1,]
 sumdata =sumdata[,-6]
 
 #semester制が導入された年の列?
+#とりあえず変化したところのdummy変数
+sumdata <- sumdata %>%
+  group_by(unitid)  %>%
+  mutate(
+    dummy_switch= ifelse(semester != lag(semester), 1, 0) , 
+    dummy_switch = ifelse(is.na(dummy_switch), 0, dummy_switch)
+  ) %>%
+  ungroup()
+
 
 #b. Gradrate
 
@@ -48,14 +56,12 @@ gradrate$total_gradrate_4yr = gradrate[,6]/gradrate[,3]
 gradrate[,7] = as.numeric(unlist(gradrate[,7]))
 gradrate$men_gradrate_4yr =gradrate[,7]/gradrate[,5]
 
-#名前調整
-
-colnames(gradrate)[10] = "total_gradrate_4yr"
 
 #round values
-gradrate[, 9:11] = round(gradrate[,9:11], digits = 2)
 gradrate[,10]= as.numeric(unlist(gradrate[,10]))
 gradrate[,11]= as.numeric(unlist(gradrate[,11]))
+gradrate[, 9:11] = round(gradrate[,9:11], digits = 2)
+
 
 #c. covariates
 
@@ -63,9 +69,6 @@ gradrate[,11]= as.numeric(unlist(gradrate[,11]))
 colnames(covariates)[1] <- "unitid"
 
 covariates$unitid<-gsub("aaaa","",as.character(covariates$unitid))
-
-install.packages("magrittr") # package installations are only needed the first time you use it
-library(magrittr) # needs to be run every time you start R and want to use %>%
 
 library(tidyr)
 covariates = covariates %>%
@@ -80,16 +83,16 @@ covariates = covariates [covariates$year %in% c("1991", "1992", "1993","1995", "
 gradrate_unitid = gradrate$unitid
 covariates = covariates [covariates$unitid %in% c(gradrate_unitid) ,]
 
-#gradrateの並び替え。yearが変だから(変じゃない時も..?)
+#gradrateの並び替え。yearが変だから
 library(dplyr)
 gradrate=gradrate %>% arrange(unitid, year)
 
-left = left_join(x = sumdata, y = gradrate, by = c('unitid', 'year'))
-str(sumdata)
-class(sumdata)
-rm(sumdata)
+#統合
+
 sumdata[5]=as.numeric(unlist(sumdata[,5]))
 sumdata[,1]=as.numeric(unlist(sumdata[,1]))
+
+left = left_join(x = sumdata, y = gradrate, by = c('unitid', 'year'))
 
 #型を揃える。列だけではなくて一気にやる方法を知りたい
 covariates[,1] = as.numeric(unlist(covariates[,1]))
@@ -98,8 +101,8 @@ covariates[,3] = as.numeric(unlist(covariates[,3]))
 covariates[,4] = as.numeric(unlist(covariates[,4]))
 covariates[,5] = as.numeric(unlist(covariates[,5]))
 covariates[,6] = as.numeric(unlist(covariates[,6]))
-covariates2= covariates
-rm(covariates)
+
+
 # 完成！(a-5. "semester制が導入された年の列を作成しなさい。"はできていない)
 
 masterdata= left_join(x = left, y = covariates, by = c('unitid', 'year'))
@@ -110,3 +113,7 @@ masterdata[,4]= as.numeric(unlist(masterdata[,4]))
 
 #複数一気に適合はうまくいかず
 #left = print(list(sumdata, gradrate, covariates) %>% reduce (left_join, by = "unitid", year" ))
+
+#csvに保存
+write.csv(masterdata, "~/Desktop/ra-bootcamp-warmup/cleaning/masterdata.csv")
+
